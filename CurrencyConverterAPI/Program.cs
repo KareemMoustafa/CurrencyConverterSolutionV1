@@ -23,10 +23,14 @@ builder.Services.AddStackExchangeRedisCache(options =>
 });
 builder.Services.AddSingleton<RedisCacheService>();
 
+builder.Services.AddSingleton<JwtService>();
 
 // Register Providers
+builder.Services.AddScoped<ExchangeRateProviderFactory>();
 builder.Services.AddScoped<FrankfurterExchangeRateProvider>();
 builder.Services.AddScoped<IExchangeRateProvider, FrankfurterExchangeRateProvider>();
+builder.Services.AddScoped<IExchangeRateProvider>(sp => sp.GetRequiredService<FrankfurterExchangeRateProvider>());
+builder.Services.AddHttpClient<FrankfurterExchangeRateProvider>();
 
 // HTTP Client & Resilience: Polly Policies
 builder.Services.AddHttpClient<FrankfurterExchangeRateProvider>()

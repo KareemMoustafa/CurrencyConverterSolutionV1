@@ -1,21 +1,18 @@
 public class ExchangeRateProviderFactory
 {
-    private readonly Dictionary<string, IExchangeRateProvider> _providers;
+    private readonly IServiceProvider _serviceProvider;
 
-    public ExchangeRateProviderFactory(IEnumerable<IExchangeRateProvider> providers)
+    public ExchangeRateProviderFactory(IServiceProvider serviceProvider)
     {
-        _providers = new Dictionary<string, IExchangeRateProvider>();
-
-        foreach (var provider in providers)
-        {
-            _providers[provider.GetType().Name] = provider;
-        }
+        _serviceProvider = serviceProvider;
     }
 
     public IExchangeRateProvider GetProvider(string providerName)
     {
-        return _providers.TryGetValue(providerName, out var provider)
-            ? provider
-            : throw new InvalidOperationException($"Exchange rate provider '{providerName}' is not registered.");
+        return providerName switch
+        {
+            "FrankfurterExchangeRateProvider" => _serviceProvider.GetRequiredService<FrankfurterExchangeRateProvider>(),
+            _ => throw new InvalidOperationException($"Exchange rate provider '{providerName}' is not registered.")
+        };
     }
 }
