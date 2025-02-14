@@ -8,15 +8,20 @@ public class ExchangeRatesControllerTests
 {
     private readonly Mock<IExchangeRateProvider> _mockProvider;
     private readonly Mock<ExchangeRateProviderFactory> _mockFactory;
+    private readonly Mock<JwtService> _mockJwtService; // Mock JwtService
     private readonly ExchangeRatesController _controller;
+
 
     public ExchangeRatesControllerTests()
     {
         _mockProvider = new Mock<IExchangeRateProvider>();
         _mockFactory = new Mock<ExchangeRateProviderFactory>();
+        _mockJwtService = new Mock<JwtService>(); // Initialize the mock
+
         _mockFactory.Setup(f => f.GetProvider(It.IsAny<string>())).Returns(_mockProvider.Object);
 
-        _controller = new ExchangeRatesController(_mockFactory.Object);
+        // Pass the mocked JwtService to the controller
+        _controller = new ExchangeRatesController(_mockFactory.Object, _mockJwtService.Object);
     }
 
     // GetCurrencies returns list
