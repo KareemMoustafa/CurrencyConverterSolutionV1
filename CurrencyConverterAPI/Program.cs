@@ -8,7 +8,9 @@ using Polly.Extensions.Http;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,32 +37,21 @@ builder.Services.AddHttpClient<FrankfurterExchangeRateProvider>()
         .HandleTransientHttpError()
         .CircuitBreakerAsync(3, TimeSpan.FromSeconds(30)));
 
-// Configure Rate Limiting
+// Add Rate Limiting Policy
 builder.Services.AddRateLimiter(options =>
 {
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-    {
-        // Identify the user via API Key, User ID, or IP Address
-        var clientIdentifier = context.User.Identity?.Name
-            ?? context.Request.Headers["X-API-KEY"].ToString()
-            ?? context.Connection.RemoteIpAddress?.ToString()
-            ?? "anonymous";
-
-        return RateLimitPartition.GetFixedWindowLimiter(clientIdentifier, // ✅ Pass clientIdentifier as an argument
-            _ => new FixedWindowRateLimiterOptions
+    options.AddPolicy("StrictPolicy", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "global",
+            key => new FixedWindowRateLimiterOptions // Ensure key is passed
             {
-                PermitLimit = 100, // Allow 100 requests
-                Window = TimeSpan.FromMinutes(1), // Per 1-minute window
+                PermitLimit = 10,  // Allow 10 requests
+                Window = TimeSpan.FromMinutes(1), // Per minute
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 5 // Allow 5 extra queued requests
-            });
-    });
-
-    options.OnRejected = async (context, cancellationToken) =>
-    {
-        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-        await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", cancellationToken);
-    };
+                QueueLimit = 2
+            }
+        )
+    );
 });
 
 // Application Services
@@ -136,14 +127,14 @@ builder.Services.AddLogging(logging =>
     logging.AddConsole(); // Use Console Logging 
 });
 var app = builder.Build();
-app.UseMiddleware<LoggingMiddleware>(); // Register Global Exception Middleware
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseSerilogRequestLogging(); // Middleware to log HTTP requests
+app.UseMiddleware<LoggingMiddleware>(); 
+app.UseSerilogRequestLogging(); 
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

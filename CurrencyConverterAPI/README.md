@@ -29,7 +29,7 @@ The Currency Converter API is a robust, scalable, and maintainable API built wit
 
 1. Clone the repository:
    ```sh
-   git clone https://github.com/your-repo/currency-converter-api.git
+   git clone https://github.com/KareemMoustafa/BambooCard---Currency-converter-SolutionV1.git
    cd currency-converter-api
    ```
 2. Restore dependencies:
@@ -40,15 +40,11 @@ The Currency Converter API is a robust, scalable, and maintainable API built wit
    - Base currency
    - API key (if required)
    - JWT settings
-4. Run database migrations (if applicable):
-   ```sh
-   dotnet ef database update
-   ```
-5. Run the API:
+4. Run the API:
    ```sh
    dotnet run
    ```
-6. Access the Swagger UI at:
+5. Access the Swagger UI at:
    ```sh
    http://localhost:5000/swagger
    ```
@@ -76,15 +72,15 @@ The Currency Converter API is a robust, scalable, and maintainable API built wit
 
 ### 1. Retrieve Latest Exchange Rates
 
-**GET** `/api/rates/latest?base=EUR`
+**GET** `/api/rates/api/exchange-rates/latest?baseCurrency=EUR&provider=FrankfurterExchangeRateProvider`
 
 ### 2. Convert Currency
 
-**GET** `/api/rates/convert?amount=100&from=USD&to=GBP`
+**GET** `/api/exchange-rates/convert?from=EUR&provider=FrankfurterExchangeRateProvider&to=USD`
 
 ### 3. Retrieve Historical Exchange Rates
 
-**GET** `/api/rates/history?from=2024-01-01&to=2024-01-31&base=EUR&page=1`
+**GET** `/api/exchange-rates/historical?startDate=2025-01-12&endDate=2025-02-14&page=1&pageSize=5&baseCurrency=EUR&provider=FrankfurterExchangeRateProvider`
 
 ## Contributing
 
@@ -96,12 +92,10 @@ The Currency Converter API is a robust, scalable, and maintainable API built wit
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the .
 
 ## Contact
 
-For any inquiries, reach out to **your-email@example.com** or open an issue on GitHub.
+For any inquiries, reach out to **kalx.87@gmail.com** or open an issue on GitHub.
 
 ---
-
-_Developed with ❤️ using ASP.NET Core 8._
