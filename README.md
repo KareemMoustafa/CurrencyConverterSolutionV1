@@ -29,7 +29,7 @@ The Currency Converter API is a robust, scalable, and maintainable API built wit
 
 1. Clone the repository:
    ```sh
-   git clone https://github.com/KareemMoustafa/BambooCard---Currency-converter-SolutionV1.git
+   git clone https://github.com/KareemMoustafa/CurrencyConverterSolutionV1.git
    cd currency-converter-api
    ```
 2. Restore dependencies:
