@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  currencyconverterapi:
+    build: .
+    container_name: currency_converter_api
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - REDIS_CONNECTION=redis:6379
+    restart: always
+
+  redis:
+    image: "redis:latest"
+    container_name: redis_cache
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
