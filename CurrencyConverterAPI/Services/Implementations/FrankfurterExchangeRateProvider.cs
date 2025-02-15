@@ -54,28 +54,46 @@ public class FrankfurterExchangeRateProvider : IExchangeRateProvider
     /// <param name="to"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<ConvertExchangeRateResonse> ConvertRateAsync(string baseCurrency, string to)
+    public async Task<ExchangeRateResponse> ConvertRateAsync(string baseCurrency, string to)
     {
         string cacheKey = $"convert_rates_{baseCurrency}";
-        var cachedData = await _cache.GetAsync<ConvertExchangeRateResonse>(cacheKey);
+        var cachedData = await _cache.GetAsync<string>(cacheKey);
 
-        if (cachedData != null) return cachedData;
-
+        if (!string.IsNullOrEmpty(cachedData))
+        {
+            Console.WriteLine($"[Cache Hit] Raw JSON: {cachedData}");
+            try
+            {
+                return JsonSerializer.Deserialize<ExchangeRateResponse>(cachedData, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? throw new Exception("Deserialized object is null.");
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"❌ JSON Deserialization Error: {ex.Message}");
+            }
+        }
+        var response = string.Empty;
         string url = $"https://api.frankfurter.dev/v1/latest?base={baseCurrency}&symbols={to}";
 
         try
         {
             Log.Information("Fetching exchange rate from {Url}", url);
 
-            var response = await _httpClient.GetStringAsync(url);
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var exchangeData = JsonSerializer.Deserialize<ConvertExchangeRateResonse>(response, options);
+            response = await _httpClient.GetStringAsync(url);
+            Console.WriteLine($"[API Response] Raw JSON: {response}");
+
+            var exchangeData = JsonSerializer.Deserialize<ExchangeRateResponse>(response, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
 
             if (exchangeData == null || exchangeData.Rates == null || !exchangeData.Rates.ContainsKey(to))
             {
                 Log.Warning("API response is invalid for conversion: {Response}", response);
-                throw new Exception("Invalid API response.");
             }
+
             await _cache.SetAsync(cacheKey, JsonSerializer.Serialize(exchangeData));
 
             return exchangeData;
@@ -83,19 +101,20 @@ public class FrankfurterExchangeRateProvider : IExchangeRateProvider
         catch (HttpRequestException ex)
         {
             Log.Error(ex, "HTTP request error when calling exchange rate API at {Url}", url);
-            throw new Exception("Error fetching exchange rate data from API.", ex);
         }
         catch (JsonException ex)
         {
             Log.Error(ex, "JSON deserialization error for response: {Url}", url);
-            throw new Exception("Error processing exchange rate data.", ex);
         }
         catch (Exception ex)
         {
             Log.Fatal(ex, "An unexpected error occurred while processing exchange rate data.");
-            throw;
         }
+
+        // Ensure a return value in case all other paths fail
+        throw new Exception("Unexpected error: No exchange rate data returned.");
     }
+
     /// <summary>
     /// 
     /// </summary>
@@ -162,9 +181,10 @@ public class FrankfurterExchangeRateProvider : IExchangeRateProvider
             throw new Exception("An unexpected error occurred.", ex);
         }
     }
-
-
-
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
     public async Task<Dictionary<string, string>> GetCurrenciesAsync()
     {
         const string CurrencyApiUrl = "https://api.frankfurter.dev/v1/currencies";

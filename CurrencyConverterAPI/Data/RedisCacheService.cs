@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Caching.Distributed;
+﻿using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -14,8 +14,29 @@ public class RedisCacheService
     public async Task<T?> GetAsync<T>(string key)
     {
         var data = await _cache.GetStringAsync(key);
-        return data is null ? default : JsonSerializer.Deserialize<T>(data);
+        if (string.IsNullOrEmpty(data)) return default;
+
+        return JsonSerializer.Deserialize<T>(data, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        try
+        {
+            Console.WriteLine($"Cache Data for {key}: {data}"); // Log the raw JSON
+            return JsonSerializer.Deserialize<T>(data, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // Allows case-insensitive mapping
+            });
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine($"JSON Deserialization Error: {ex.Message}");
+            Console.WriteLine($"JSON Data: {data}");
+            throw; // Re-throw the exception for debugging
+        }
     }
+
 
     public async Task SetAsync<T>(string key, T value, int expirationInMinutes = 10)
     {
