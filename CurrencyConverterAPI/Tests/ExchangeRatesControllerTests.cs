@@ -1,30 +1,27 @@
-using Xunit;
+﻿using Xunit;
 using Moq;
 using Microsoft.AspNetCore.Mvc;
 using CurrencyConverterAPI.Models;
-
 
 public class ExchangeRatesControllerTests
 {
     private readonly Mock<IExchangeRateProvider> _mockProvider;
     private readonly Mock<ExchangeRateProviderFactory> _mockFactory;
-    private readonly Mock<JwtService> _mockJwtService; // Mock JwtService
+    private readonly Mock<JwtService> _mockJwtService;
     private readonly ExchangeRatesController _controller;
-
 
     public ExchangeRatesControllerTests()
     {
         _mockProvider = new Mock<IExchangeRateProvider>();
         _mockFactory = new Mock<ExchangeRateProviderFactory>();
-        _mockJwtService = new Mock<JwtService>(); // Initialize the mock
+        _mockJwtService = new Mock<JwtService>();
 
         _mockFactory.Setup(f => f.GetProvider(It.IsAny<string>())).Returns(_mockProvider.Object);
 
-        // Pass the mocked JwtService to the controller
         _controller = new ExchangeRatesController(_mockFactory.Object, _mockJwtService.Object);
     }
 
-    // GetCurrencies returns list
+    // GetCurrencies returns a list of currencies
     [Fact]
     public async Task GetCurrencies_ReturnsListOfCurrencies()
     {
@@ -43,7 +40,7 @@ public class ExchangeRatesControllerTests
         Assert.Equal(2, returnedCurrencies.Count);
     }
 
-    //  GetCurrencies returns empty
+    // GetCurrencies returns an empty list when no data is available
     [Fact]
     public async Task GetCurrencies_ReturnsEmptyList_WhenNoData()
     {
@@ -56,7 +53,7 @@ public class ExchangeRatesControllerTests
         Assert.Empty(returnedCurrencies);
     }
 
-    //  GetLatestRates returns rates
+    // GetLatestRates returns exchange rates
     [Fact]
     public async Task GetLatestRates_ReturnsExchangeRates()
     {
@@ -64,11 +61,12 @@ public class ExchangeRatesControllerTests
         {
             Base = "EUR",
             Rates = new Dictionary<string, decimal>
-                {
-                    { "USD", 1.10m },
-                    { "GBP", 0.85m }
-                }
+            {
+                { "USD", 1.10m },
+                { "GBP", 0.85m }
+            }
         };
+
         _mockProvider.Setup(p => p.GetLatestRatesAsync("EUR")).ReturnsAsync(rates);
 
         var result = await _controller.GetLatestRates();
@@ -78,19 +76,19 @@ public class ExchangeRatesControllerTests
         Assert.NotNull(returnedRates);
     }
 
-    // GetLatestRates fails
+    // GetLatestRates fails and returns BadRequest
     [Fact]
     public async Task GetLatestRates_ReturnsBadRequest_WhenFail()
     {
         _mockProvider.Setup(p => p.GetLatestRatesAsync("EUR"))
-         .ReturnsAsync((ExchangeRateResponse?)null);
+                .ReturnsAsync((ExchangeRateResponse?)null);
 
         var result = await _controller.GetLatestRates();
 
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
-    //  ConvertCurrency fails with invalid input
+    // ConvertCurrency fails due to invalid input
     [Fact]
     public async Task ConvertCurrency_ReturnsBadRequest_WhenInputIsInvalid()
     {
@@ -98,34 +96,34 @@ public class ExchangeRatesControllerTests
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
-    //  ConvertCurrency fails due to API issue
+    //ConvertCurrency fails due to API issue
     [Fact]
     public async Task ConvertCurrency_ReturnsServerError_WhenApiFails()
     {
         _mockProvider.Setup(p => p.ConvertRateAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .ThrowsAsync(new HttpRequestException());
+                     .ThrowsAsync(new HttpRequestException());
 
         var result = await _controller.ConvertCurrency(from: "EUR", to: "USD");
+
         Assert.IsType<ObjectResult>(result);
         Assert.Equal(500, (result as ObjectResult)!.StatusCode);
     }
 
-    //  GetHistoricalRates returns data
+    //GetHistoricalRates returns historical data
     [Fact]
     public async Task GetHistoricalRates_ReturnsData()
     {
         var rates = new HistoricalExchangeRateResponse
         {
             Rates = new Dictionary<string, Dictionary<string, decimal>>
-        {
-            { "2024-01-01", new Dictionary<string, decimal> { { "USD", 1.10m }, { "GBP", 0.85m } } },
-            { "2024-01-02", new Dictionary<string, decimal> { { "USD", 1.12m }, { "GBP", 0.86m } } }
-        }
+            {
+                { "2024-01-01", new Dictionary<string, decimal> { { "USD", 1.10m }, { "GBP", 0.85m } } },
+                { "2024-01-02", new Dictionary<string, decimal> { { "USD", 1.12m }, { "GBP", 0.86m } } }
+            }
         };
 
-
         _mockProvider.Setup(p => p.GetHistoricalRatesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
-            .ReturnsAsync(rates); // Must match `Task<HistoricalExchangeRateResponse>`
+                     .ReturnsAsync(rates);
 
         var result = await _controller.GetHistoricalRates("2024-01-01", "2024-01-10");
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -143,18 +141,16 @@ public class ExchangeRatesControllerTests
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
-    //  GetHistoricalRates fails due to provider failure
+    // GetHistoricalRates fails due to provider failure
     [Fact]
     public async Task GetHistoricalRates_ReturnsBadRequest_WhenProviderFails()
     {
+        _mockProvider.Setup(x => x.GetHistoricalRatesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+         .ReturnsAsync((HistoricalExchangeRateResponse?)new HistoricalExchangeRateResponse());
 
-        _mockProvider.Setup(p => p.GetHistoricalRatesAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
-            .ReturnsAsync((HistoricalExchangeRateResponse?)null); // ✅ Correct return type
 
         var result = await _controller.GetHistoricalRates("2024-01-01", "2024-01-10");
 
         Assert.IsType<BadRequestObjectResult>(result);
     }
-
 }
