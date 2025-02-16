@@ -22,7 +22,6 @@ The Currency Converter API is a robust, scalable, and maintainable API built wit
 - .NET Core 8 SDK
 - Visual Studio or VS Code
 - Docker (optional, for containerized deployment)
-- PostgreSQL / SQL Server (for database, if applicable)
 - API key for the Frankfurter API (if needed)
 
 ### Installation
