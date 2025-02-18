@@ -92,11 +92,14 @@ public class FrankfurterExchangeRateProvider : IExchangeRateProvider
             if (exchangeData == null || exchangeData.Rates == null || !exchangeData.Rates.ContainsKey(to))
             {
                 Log.Warning("API response is invalid for conversion: {Response}", response);
+                return new ExchangeRateResponse(); // Explicitly return null to satisfy nullable checks
             }
 
+            // Ensure exchangeData is cached only if it's valid
             await _cache.SetAsync(cacheKey, JsonSerializer.Serialize(exchangeData));
 
-            return exchangeData;
+            return exchangeData!;
+
         }
         catch (HttpRequestException ex)
         {
